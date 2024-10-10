@@ -4,18 +4,15 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 type Config struct {
-	Port     string
-	DBHost   string
-	DBPort   string
-	DBUser   string
-	DBPass   string
-	DBName   string
+	Port        string
+	DatabaseURL string
 }
 
 func Load() (*Config, error) {
@@ -24,23 +21,21 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
-		Port:     os.Getenv("PORT"),
-		DBHost:   os.Getenv("DB_HOST"),
-		DBPort:   os.Getenv("DB_PORT"),
-		DBUser:   os.Getenv("DB_USER"),
-		DBPass:   os.Getenv("DB_PASS"),
-		DBName:   os.Getenv("DB_NAME"),
+		Port:        os.Getenv("PORT"),
+		DatabaseURL: os.Getenv("DATABASE_URL"),
 	}, nil
 }
 
 func InitDB(cfg *Config) (*sql.DB, error) {
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPass, cfg.DBName)
-
-	db, err := sql.Open("postgres", psqlInfo)
+	db, err := sql.Open("postgres", cfg.DatabaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("error opening database: %w", err)
 	}
+
+	// Set connection pool settings
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	if err = db.Ping(); err != nil {
 		return nil, fmt.Errorf("error connecting to database: %w", err)

@@ -42,13 +42,17 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.authService.Login(loginRequest.Email, loginRequest.Password)
+	user, accessToken, refreshToken, err := h.authService.Login(loginRequest.Email, loginRequest.Password)
 	if err != nil {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	// In thực tế, bạn sẽ tạo và trả về một JWT token ở đây
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Login successful", "user_id": string(user.ID)})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":       "Login successful",
+		"user_id":       user.ID,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	})
 }

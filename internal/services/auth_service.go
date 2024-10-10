@@ -5,6 +5,9 @@ import (
 	"pleno-go/internal/models"
 	"pleno-go/internal/repository"
 	"pleno-go/pkg/utils"
+	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 type AuthService struct {
@@ -16,7 +19,6 @@ func NewAuthService(userRepo *repository.UserRepository) *AuthService {
 }
 
 func (s *AuthService) Register(user *models.User) error {
-	// Hash the password before storing
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 		return err
@@ -26,15 +28,48 @@ func (s *AuthService) Register(user *models.User) error {
 	return s.userRepo.CreateUser(user)
 }
 
-func (s *AuthService) Login(email, password string) (*models.User, error) {
+func (s *AuthService) Login(email, password string) (*models.User, string, string, error) {
 	user, err := s.userRepo.GetUserByEmail(email)
 	if err != nil {
-		return nil, err
+		return nil, "", "", err
 	}
 
 	if !utils.CheckPasswordHash(password, user.Password) {
-		return nil, errors.New("invalid credentials")
+		return nil, "", "", errors.New("invalid credentials")
 	}
 
-	return user, nil
+	accessToken, err := generateAccessToken(user.ID)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	refreshToken, err := generateRefreshToken(user.ID)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	err = s.userRepo.UpdateRefreshToken(user.ID, refreshToken)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	return user, accessToken, refreshToken, nil
+}
+
+func generateAccessToken(userID int64) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userID,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+	})
+
+	return token.SignedString([]byte("your_access_token_secret"))
+}
+
+func generateRefreshToken(userID int64) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userID,
+		"exp":     time.Now().Add(time.Hour * 24 * 7).Unix(),
+	})
+
+	return token.SignedString([]byte("your_refresh_token_secret"))
 }

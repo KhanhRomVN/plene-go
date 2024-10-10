@@ -8,6 +8,8 @@ import (
 	"pleno-go/internal/handlers"
 	"pleno-go/internal/repository"
 	"pleno-go/internal/services"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {

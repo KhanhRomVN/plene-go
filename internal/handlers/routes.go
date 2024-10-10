@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"net/http"
 	"pleno-go/internal/services"
 
 	"github.com/gorilla/mux"
