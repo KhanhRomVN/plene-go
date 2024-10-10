@@ -13,10 +13,8 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	err := godotenv.Load()
-	if err != nil {
-		return nil, err
-	}
+	// Attempt to load .env file, but don't return an error if it doesn't exist
+	_ = godotenv.Load()
 
 	return &Config{
 		DatabaseURL: os.Getenv("DATABASE_URL"),
